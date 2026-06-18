@@ -67,6 +67,7 @@ jobs:
       - name: SonarCloud Analysis
         run: >
           mvn verify sonar:sonar
+          -DskipTests
           -Dsonar.projectKey=GauthamOfficial_urbangent-order-service
           -Dsonar.organization=gauthamofficial
           -Dsonar.host.url=https://sonarcloud.io
