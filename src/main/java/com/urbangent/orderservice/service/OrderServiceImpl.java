@@ -16,7 +16,14 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
+/**
+ * Implementation of the OrderService interface.
+ * Handles order creation, inter-service communication with Product Service,
+ * and event publishing to RabbitMQ.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -35,8 +42,7 @@ public class OrderServiceImpl implements OrderService {
         try {
             product = restTemplate.getForObject(
                     productServiceUrl + "/api/products/" + request.getProductId(),
-                    ProductResponse.class
-            );
+                    ProductResponse.class);
         } catch (HttpClientErrorException.NotFound e) {
             throw new ProductNotFoundException("Product not found with id: " + request.getProductId());
         } catch (Exception e) {
@@ -78,6 +84,45 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return mapToResponse(saved);
+    }
+
+    /**
+     * Retrieves an order by its unique identifier.
+     *
+     * @param id the order UUID
+     * @return the order details
+     */
+    @Override
+    public OrderResponse getOrderById(UUID id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+
+        return mapToResponse(order);
+    }
+
+    /**
+     * Retrieves all orders in the system.
+     *
+     * @return list of all orders
+     */
+    @Override
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    /**
+     * Retrieves all orders placed by a specific customer.
+     *
+     * @param customerId the customer identifier
+     * @return list of orders for the customer
+     */
+    @Override
+    public List<OrderResponse> getOrdersByCustomerId(String customerId) {
+        return orderRepository.findByCustomerId(customerId).stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     private OrderResponse mapToResponse(Order order) {
