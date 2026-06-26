@@ -17,7 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
-
+import java.util.List;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -99,4 +100,79 @@ class OrderControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
+    @Test
+    void getOrderById_Found_Returns200() throws Exception {
+    UUID orderId = UUID.randomUUID();
+    OrderResponse response = OrderResponse.builder()
+            .orderId(orderId)
+            .customerId("CUST-001")
+            .productName("Oxford Shirt")
+            .quantity(2)
+            .totalPrice(new BigDecimal("79.98"))
+            .status(OrderStatus.PENDING)
+            .build();
+
+    when(orderService.getOrderById(orderId)).thenReturn(response);
+
+    mockMvc.perform(get("/api/orders/{id}", orderId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.customerId").value("CUST-001"))
+            .andExpect(jsonPath("$.productName").value("Oxford Shirt"));
+}
+
+    @Test
+    void getOrderById_Found_Returns200() throws Exception {
+    UUID orderId = UUID.randomUUID();
+    OrderResponse response = OrderResponse.builder()
+            .orderId(orderId)
+            .customerId("CUST-001")
+            .productName("Oxford Shirt")
+            .quantity(2)
+            .totalPrice(new BigDecimal("79.98"))
+            .status(OrderStatus.PENDING)
+            .build();
+
+    when(orderService.getOrderById(orderId)).thenReturn(response);
+
+    mockMvc.perform(get("/api/orders/{id}", orderId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.customerId").value("CUST-001"))
+            .andExpect(jsonPath("$.productName").value("Oxford Shirt"));
+}
+
+    @Test
+    void getAllOrders_Returns200() throws Exception {
+    OrderResponse response = OrderResponse.builder()
+            .orderId(UUID.randomUUID())
+            .customerId("CUST-001")
+            .productName("Oxford Shirt")
+            .quantity(1)
+            .totalPrice(new BigDecimal("39.99"))
+            .status(OrderStatus.PENDING)
+            .build();
+
+    when(orderService.getAllOrders()).thenReturn(List.of(response));
+
+    mockMvc.perform(get("/api/orders"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1));
+}
+
+    @Test
+    void getOrdersByCustomerId_Returns200() throws Exception {
+    OrderResponse response = OrderResponse.builder()
+            .orderId(UUID.randomUUID())
+            .customerId("CUST-001")
+            .productName("Leather Shoes")
+            .quantity(1)
+            .totalPrice(new BigDecimal("129.99"))
+            .status(OrderStatus.PENDING)
+            .build();
+
+    when(orderService.getOrdersByCustomerId("CUST-001")).thenReturn(List.of(response));
+
+    mockMvc.perform(get("/api/orders/customer/{customerId}", "CUST-001"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].customerId").value("CUST-001"));
+}
 }
