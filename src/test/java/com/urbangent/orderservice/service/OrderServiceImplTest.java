@@ -20,6 +20,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -120,5 +122,93 @@ class OrderServiceImplTest {
         when(restTemplate.getForObject(anyString(), eq(ProductResponse.class))).thenReturn(null);
 
         assertThrows(ProductNotFoundException.class, () -> orderService.createOrder(request));
+    }
+
+    @Test
+    void getOrderById_ExistingId_ReturnsOrder() {
+        UUID orderId = UUID.randomUUID();
+        Order order = Order.builder()
+                .orderId(orderId)
+                .customerId("CUST-001")
+                .productId(UUID.randomUUID())
+                .productName("Slim Fit Oxford Shirt")
+                .quantity(2)
+                .totalPrice(new BigDecimal("79.98"))
+                .orderDate(LocalDateTime.now())
+                .status(OrderStatus.PENDING)
+                .build();
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.getOrderById(orderId);
+
+        assertNotNull(response);
+        assertEquals("CUST-001", response.getCustomerId());
+        assertEquals("Slim Fit Oxford Shirt", response.getProductName());
+        assertEquals(new BigDecimal("79.98"), response.getTotalPrice());
+        verify(orderRepository).findById(orderId);
+    }
+
+    @Test
+    void getOrderById_NonExistingId_ThrowsException() {
+        UUID orderId = UUID.randomUUID();
+        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+        assertThrows(RuntimeException.class, () -> orderService.getOrderById(orderId));
+        verify(orderRepository).findById(orderId);
+    }
+
+    @Test
+    void getAllOrders_ReturnsListOfOrders() {
+        Order order1 = Order.builder()
+                .orderId(UUID.randomUUID())
+                .customerId("CUST-001")
+                .productId(UUID.randomUUID())
+                .productName("Oxford Shirt")
+                .quantity(1)
+                .totalPrice(new BigDecimal("39.99"))
+                .orderDate(LocalDateTime.now())
+                .status(OrderStatus.PENDING)
+                .build();
+
+        Order order2 = Order.builder()
+                .orderId(UUID.randomUUID())
+                .customerId("CUST-002")
+                .productId(UUID.randomUUID())
+                .productName("Formal Suit")
+                .quantity(1)
+                .totalPrice(new BigDecimal("249.99"))
+                .orderDate(LocalDateTime.now())
+                .status(OrderStatus.CONFIRMED)
+                .build();
+
+        when(orderRepository.findAll()).thenReturn(List.of(order1, order2));
+
+        List<OrderResponse> responses = orderService.getAllOrders();
+
+        assertEquals(2, responses.size());
+        verify(orderRepository).findAll();
+    }
+
+    @Test
+    void getOrdersByCustomerId_ReturnsFilteredOrders() {
+        Order order = Order.builder()
+                .orderId(UUID.randomUUID())
+                .customerId("CUST-001")
+                .productId(UUID.randomUUID())
+                .productName("Leather Derby Shoes")
+                .quantity(1)
+                .totalPrice(new BigDecimal("129.99"))
+                .orderDate(LocalDateTime.now())
+                .status(OrderStatus.PENDING)
+                .build();
+
+        when(orderRepository.findByCustomerId("CUST-001")).thenReturn(List.of(order));
+
+        List<OrderResponse> responses = orderService.getOrdersByCustomerId("CUST-001");
+
+        assertEquals(1, responses.size());
+        assertEquals("CUST-001", responses.get(0).getCustomerId());
+        verify(orderRepository).findByCustomerId("CUST-001");
     }
 }
